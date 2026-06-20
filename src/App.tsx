@@ -5,7 +5,7 @@ import DashboardPanel from './components/DashboardPanel';
 import ModalListTool from './components/ModalListTool';
 import ModalToolDetail from './components/ModalToolDetail';
 import { User, Tool, BorrowRequest, LocationCoordinates } from './types';
-import { SIMULATED_USERS } from './data';
+import { SIMULATED_USERS, INITIAL_TOOLS } from './data';
 import { Compass, Sparkles, Check, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -35,6 +35,9 @@ export default function App() {
   // In-app alert notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Local Storage fallback database mode
+  const [isFallbackMode, setIsFallbackMode] = useState(false);
+
   // 2. Synchronize simulated identities with localStorage
   useEffect(() => {
     localStorage.setItem('toolshare_user', JSON.stringify(currentUser));
@@ -51,14 +54,37 @@ export default function App() {
         fetch('/api/tools'),
         fetch('/api/requests')
       ]);
-      if (toolsRes.ok && reqRes.ok) {
-        const toolsData = await toolsRes.json();
-        const requestsData = await reqRes.json();
-        setTools(toolsData);
-        setRequests(requestsData);
+      
+      if (!toolsRes.ok || !reqRes.ok) {
+        throw new Error('Non-ok response from API');
       }
+      
+      const contentType1 = toolsRes.headers.get('content-type') || '';
+      const contentType2 = reqRes.headers.get('content-type') || '';
+      if (!contentType1.includes('application/json') || !contentType2.includes('application/json')) {
+        throw new Error('API returned HTML instead of JSON (possibly static redirect)');
+      }
+
+      const toolsData = await toolsRes.json();
+      const requestsData = await reqRes.json();
+      setTools(toolsData);
+      setRequests(requestsData);
+      setIsFallbackMode(false);
     } catch (err) {
-      console.error('Error querying backend REST API', err);
+      console.warn('API connection failed, falling back to local storage database:', err);
+      setIsFallbackMode(true);
+      
+      const localTools = localStorage.getItem('toolshare_db_tools');
+      const localRequests = localStorage.getItem('toolshare_db_requests');
+      
+      const seededTools = localTools ? JSON.parse(localTools) : INITIAL_TOOLS;
+      const seededRequests = localRequests ? JSON.parse(localRequests) : [];
+      
+      setTools(seededTools);
+      setRequests(seededRequests);
+      
+      if (!localTools) localStorage.setItem('toolshare_db_tools', JSON.stringify(INITIAL_TOOLS));
+      if (!localRequests) localStorage.setItem('toolshare_db_requests', JSON.stringify([]));
     } finally {
       setLoading(false);
     }
@@ -93,7 +119,7 @@ export default function App() {
     }, 4500);
   };
 
-  // 3. Action callbacks talking to Express REST routes
+  // 3. Action callbacks talking to Express REST routes or local storage fallback
   const handleAddNewTool = async (toolData: {
     name: string;
     category: any;
@@ -104,6 +130,21 @@ export default function App() {
     pricePerDay: number;
     location: LocationCoordinates;
   }) => {
+    const newTool = {
+      id: `tool_${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      status: 'Available' as const,
+      ...toolData
+    };
+
+    if (isFallbackMode) {
+      const updatedTools = [newTool, ...tools];
+      setTools(updatedTools);
+      localStorage.setItem('toolshare_db_tools', JSON.stringify(updatedTools));
+      showToast(`Successfully listed "${toolData.name}" in the catalog!`);
+      return;
+    }
+
     try {
       const res = await fetch('/api/tools', {
         method: 'POST',
@@ -129,6 +170,36 @@ export default function App() {
     const selectedTool = tools.find((t) => t.id === reqData.toolId);
     if (!selectedTool) return;
 
+    if (isFallbackMode) {
+      const newRequest = {
+        id: `request_${Date.now()}`,
+        toolId: selectedTool.id,
+        toolName: selectedTool.name,
+        toolPhoto: selectedTool.photoUrl,
+        ownerId: selectedTool.ownerId,
+        ownerName: selectedTool.ownerName,
+        borrowerId: currentUser.id,
+        borrowerName: currentUser.name,
+        proposedDate: reqData.proposedDate,
+        message: reqData.message,
+        status: 'Pending' as const,
+        createdAt: new Date().toISOString()
+      };
+
+      const updatedTools = tools.map(t => 
+        t.id === selectedTool.id ? { ...t, status: 'Requested' as const } : t
+      );
+      const updatedRequests = [newRequest, ...requests];
+
+      setTools(updatedTools);
+      setRequests(updatedRequests);
+      localStorage.setItem('toolshare_db_tools', JSON.stringify(updatedTools));
+      localStorage.setItem('toolshare_db_requests', JSON.stringify(updatedRequests));
+
+      showToast(`Rental request for "${selectedTool.name}" submitted!`);
+      return;
+    }
+
     try {
       const res = await fetch('/api/requests', {
         method: 'POST',
@@ -153,6 +224,23 @@ export default function App() {
   };
 
   const handleApproveRequest = async (requestId: string) => {
+    if (isFallbackMode) {
+      const updatedRequests = requests.map(r => 
+        r.id === requestId ? { ...r, status: 'Approved' as const } : r
+      );
+      const targetRequest = requests.find(r => r.id === requestId);
+      const updatedTools = tools.map(t => 
+        t.id === targetRequest?.toolId ? { ...t, status: 'Borrowed' as const } : t
+      );
+
+      setRequests(updatedRequests);
+      setTools(updatedTools);
+      localStorage.setItem('toolshare_db_tools', JSON.stringify(updatedTools));
+      localStorage.setItem('toolshare_db_requests', JSON.stringify(updatedRequests));
+      showToast(`You approved the rental! Tool is now marked as rented.`);
+      return;
+    }
+
     try {
       const res = await fetch(`/api/requests/${requestId}`, {
         method: 'PATCH',
@@ -171,6 +259,23 @@ export default function App() {
   };
 
   const handleDeclineRequest = async (requestId: string) => {
+    if (isFallbackMode) {
+      const updatedRequests = requests.map(r => 
+        r.id === requestId ? { ...r, status: 'Declined' as const } : r
+      );
+      const targetRequest = requests.find(r => r.id === requestId);
+      const updatedTools = tools.map(t => 
+        t.id === targetRequest?.toolId ? { ...t, status: 'Available' as const } : t
+      );
+
+      setRequests(updatedRequests);
+      setTools(updatedTools);
+      localStorage.setItem('toolshare_db_tools', JSON.stringify(updatedTools));
+      localStorage.setItem('toolshare_db_requests', JSON.stringify(updatedRequests));
+      showToast(`Declined rental request.`);
+      return;
+    }
+
     try {
       const res = await fetch(`/api/requests/${requestId}`, {
         method: 'PATCH',
@@ -189,6 +294,23 @@ export default function App() {
   };
 
   const handleMarkReturned = async (requestId: string) => {
+    if (isFallbackMode) {
+      const updatedRequests = requests.map(r => 
+        r.id === requestId ? { ...r, status: 'Returned' as const } : r
+      );
+      const targetRequest = requests.find(r => r.id === requestId);
+      const updatedTools = tools.map(t => 
+        t.id === targetRequest?.toolId ? { ...t, status: 'Available' as const } : t
+      );
+
+      setRequests(updatedRequests);
+      setTools(updatedTools);
+      localStorage.setItem('toolshare_db_tools', JSON.stringify(updatedTools));
+      localStorage.setItem('toolshare_db_requests', JSON.stringify(updatedRequests));
+      showToast(`Tool marked as returned and is now available again!`);
+      return;
+    }
+
     try {
       const res = await fetch(`/api/requests/${requestId}`, {
         method: 'PATCH',

@@ -59,7 +59,7 @@ export const INITIAL_TOOLS: Tool[] = [
     location: {
       lat: 47.6150,
       lng: -122.3150,
-      label: 'Capitol Hill, Seattle'
+      label: 'Capitol Hill'
     },
     createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
   },
@@ -76,33 +76,14 @@ export const INITIAL_TOOLS: Tool[] = [
     pricePerDay: 200,
     status: 'Available',
     location: {
-      lat: 47.6160,
-      lng: -122.3180,
-      label: 'Capitol Hill East, Seattle'
+      lat: 47.6150,
+      lng: -122.3150,
+      label: 'Capitol Hill'
     },
     createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
   },
   {
     id: 'tool_3',
-    ownerId: 'user_marcus',
-    ownerName: 'Marcus Green',
-    name: 'Honda 3100 PSI Gas Pressure Washer',
-    category: 'Cleaning',
-    condition: 'Good',
-    description: 'Great for cleaning driveways, exterior stucco, decks, or brick walkways. Extremely powerful, uses standard gas (unleaded). Will show you how to start it.',
-    photoUrl: 'https://images.unsplash.com/photo-1621905252507-b354bc25edac?w=500&auto=format&fit=crop&q=80',
-    maxBorrowDays: 1,
-    pricePerDay: 500,
-    status: 'Available',
-    location: {
-      lat: 47.6500,
-      lng: -122.3500,
-      label: 'Fremont, Seattle'
-    },
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: 'tool_4',
     ownerId: 'user_sarah',
     ownerName: 'Sarah Chen',
     name: 'EGO Power+ Brushless Leaf Blower',
@@ -116,27 +97,8 @@ export const INITIAL_TOOLS: Tool[] = [
     location: {
       lat: 47.6684,
       lng: -122.3842,
-      label: 'Ballard, Seattle'
+      label: 'Ballard'
     },
     createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: 'tool_5',
-    ownerId: 'user_sarah',
-    ownerName: 'Sarah Chen',
-    name: 'Stanley Complete 145-Piece Socket Set',
-    category: 'Hand Tools',
-    condition: 'New',
-    description: 'An exhaustive metric and imperial socket and mechanics wrench set. Great for working on simple car repairs, bikes, or tightening heavy bolts.',
-    photoUrl: 'https://images.unsplash.com/photo-1530124564343-6cdde1422790?w=500&auto=format&fit=crop&q=80',
-    maxBorrowDays: 5,
-    pricePerDay: 100,
-    status: 'Available',
-    location: {
-      lat: 47.6690,
-      lng: -122.3850,
-      label: 'Ballard North, Seattle'
-    },
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
   }
 ];
