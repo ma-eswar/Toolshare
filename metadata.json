@@ -1,0 +1,10 @@
+{
+  "name": "ToolShare",
+  "description": "A hyperlocal neighborhood peer-to-peer tool sharing network.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
