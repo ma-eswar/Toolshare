@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User, LocationCoordinates } from '../types';
 import { SIMULATED_USERS } from '../data';
-import { MapPin, Users, Info, Compass } from 'lucide-react';
+import { MapPin, Users, Info, Compass, Github } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface HeaderProps {
@@ -237,6 +237,18 @@ export default function Header({
               )}
             </AnimatePresence>
           </div>
+
+          {/* GitHub Link */}
+          <a
+            id="link-github-repo"
+            href="https://github.com/ma-eswar/Toolshare"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex h-[32px] w-[32px] items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-700 shadow-2xs hover:bg-stone-50 hover:text-stone-900 transition-all duration-150 cursor-pointer"
+            title="View on GitHub"
+          >
+            <Github className="h-4 w-4 text-emerald-800" />
+          </a>
 
         </div>
       </div>
